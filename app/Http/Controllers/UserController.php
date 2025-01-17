@@ -49,7 +49,7 @@ class UserController extends Controller
     }
 
     public function get_user_by_id(Request $request){
-        $id = $request->id;
+        $id = $request->get("id");
         $user = User::find(intval($id));
         return response()->json([
             "messages"=>[
@@ -121,6 +121,7 @@ class UserController extends Controller
                 ]
             ], 402);
         }
+
         $data = [
             "user_email" => $user_email,
             "user_password" => $user_password,
@@ -136,16 +137,19 @@ class UserController extends Controller
     }
 
     public function update_user(Request $request){
-        $user_id = $request->input("id");
+        $user_id = intval($request->input("id"));
         $user_email = $request->input('user_email');
         $user_password = $request->input("user_password");
+        $password_confirmation = $request->input("password_confirmation");
         $user_fullname = $request->input("user_fullname");
         $user_role = $request->input("user_role");
+        $user_status= intval($request->input("user_status"));
 
         $validation = Validator::make($request->all(),[
             'id'=> 'required|integer',
             'user_email'=> 'required|string',
             'user_password'=> 'required|string',
+            'password_confirmation'=>'required|string',
             'user_fullname'=> 'required|string',
             'user_role' => 'required|string',
             'user_status' => 'required|integer'
@@ -157,6 +161,7 @@ class UserController extends Controller
                     "id"=>$validation->errors()->get("id"),
                     "user_email"=>$validation->errors()->get("user_email"),
                     "user_password"=>$validation->errors()->get("user_password"),
+                    "password_confirmation"=> $validation->errors()->get("password_confirmation"),
                     "user_fullname"=>$validation->errors()->get("user_fullname"),
                     "user_role"=>$validation->errors()->get("user_role"),
                     "user_status"=>$validation->errors()->get("user_status")
@@ -164,16 +169,33 @@ class UserController extends Controller
             ], 401);
         }
 
-        $user = User::findOrFail($user_id);
+        if($user_password != $password_confirmation){
+                return response()->json([
+                    "messages"=>[
+                    "error"=> true,
+                    "message"=>"password dan konfirmasi password tidak sama"
+                ]
+            ], 402);
+        }
+
         $inputedData = [
             "user_email"=>$user_email,
             "user_password"=>$user_password,
             "user_fullname"=>$user_fullname,
-            "user_role"=>$user_role
+            "user_role"=>$user_role,
+            "user_status"=>$user_status
         ];
-        if($user != null){
-            $user->update($inputedData);
-        }
+        
+        DB::table("users")->where("id", $user_id)->update($inputedData);
+        $updatedUser = DB::table('users')->where("id", $user_id)->first();
+        return response()->json(
+            [
+                "messages"=>[
+                    "error"=>false
+                ],
+                "data"=>$updatedUser
+            ], 202
+        );
     }
 
     public function delete_user(Request $request){
