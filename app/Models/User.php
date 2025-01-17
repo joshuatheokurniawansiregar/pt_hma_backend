@@ -23,7 +23,8 @@ class User extends Model
         'user_email',
         'user_password',
         'user_fullname',
-        'user_role'
+        'user_role',
+        'user_status'
     ];
 
     /**
